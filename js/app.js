@@ -1,6 +1,6 @@
 /**
  * Northstar Retail Co. - Main Application Controller
- * Sprint 2: Live Inventory Sync Service
+ * Sprint 2: Live Inventory Sync Service with User-Facing Retry & Backoff Feedback
  */
 
 import { InventoryApiClient } from './api-client.js';
@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryFilter = document.getElementById('categoryFilter');
   const btnForceSync = document.getElementById('btnForceSync');
   const btnTestRetry = document.getElementById('btnTestRetry');
-  const btnClearLog = document.getElementById('btnClearLog');
 
   // Status Badges & Metrics
   const pulseDot = document.getElementById('pulseDot');
@@ -29,6 +28,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const metricLowStock = document.getElementById('metricLowStock');
   const metricRetriesCount = document.getElementById('metricRetriesCount');
 
+  // User-Facing Retry & Backoff Feedback Banner Elements
+  const userRetryBanner = document.getElementById('userRetryBanner');
+  const bannerStatusText = document.getElementById('bannerStatusText');
+  const bannerAttemptBadge = document.getElementById('bannerAttemptBadge');
+  const bannerCountdownMsg = document.getElementById('bannerCountdownMsg');
+  const bannerCountdownTime = document.getElementById('bannerCountdownTime');
+  const backoffProgressFill = document.getElementById('backoffProgressFill');
+
+  // Customer Fallback Error Card Elements
+  const customerFallbackCard = document.getElementById('customerFallbackCard');
+  const btnFallbackRetry = document.getElementById('btnFallbackRetry');
+  const btnDismissFallback = document.getElementById('btnDismissFallback');
+
   // Retry Controls
   const inputMaxRetries = document.getElementById('inputMaxRetries');
   const lblMaxRetries = document.getElementById('lblMaxRetries');
@@ -37,42 +49,105 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectJitter = document.getElementById('selectJitter');
   const selectSimScenario = document.getElementById('selectSimScenario');
 
-  // Console Logs
-  const consoleLogs = document.getElementById('consoleLogs');
+  // Global State for UI Component Binding
+  let currentSyncState = {
+    isRetrying: false,
+    isFallbackActive: false,
+    attemptNumber: 1,
+    maxRetries: 3,
+    remainingSeconds: '0.0'
+  };
 
-  // Logger helper
-  function addConsoleLog(msg, type = 'info') {
-    if (!consoleLogs) return;
-    const entry = document.createElement('div');
-    entry.className = `log-entry log-${type}`;
-    const timeStr = new Date().toLocaleTimeString();
-    entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${msg}`;
-    consoleLogs.appendChild(entry);
-    consoleLogs.scrollTop = consoleLogs.scrollHeight;
+  // Helper to show/hide user-facing retry banner
+  function showUserRetryBanner() {
+    if (userRetryBanner) userRetryBanner.classList.remove('hidden');
   }
 
-  // Telemetry listener
+  function hideUserRetryBanner() {
+    if (userRetryBanner) userRetryBanner.classList.add('hidden');
+  }
+
+  // Telemetry Listener for User-Facing Feedback State
   apiClient.onTelemetry((event) => {
     switch (event.type) {
       case 'ATTEMPT_START':
-        addConsoleLog(`⚡ Attempt ${event.attempt}/${event.maxRetries + 1} sending API request...`, 'info');
+        currentSyncState.isRetrying = event.attempt > 1;
+        currentSyncState.attemptNumber = event.attempt;
+        currentSyncState.maxRetries = event.maxRetries;
+
+        if (event.attempt > 1) {
+          showUserRetryBanner();
+          if (bannerStatusText) bannerStatusText.textContent = `Syncing with regional distribution hubs... Executing attempt ${event.attempt} of ${event.maxRetries + 1}`;
+          if (bannerAttemptBadge) bannerAttemptBadge.textContent = `Attempt ${event.attempt} of ${event.maxRetries + 1}`;
+          if (bannerCountdownMsg) bannerCountdownMsg.textContent = `Transmitting HTTP payload to regional servers...`;
+          if (bannerCountdownTime) bannerCountdownTime.textContent = `In Progress`;
+          if (backoffProgressFill) backoffProgressFill.style.width = `100%`;
+        }
         break;
-      case 'BACKOFF_WAIT':
-        addConsoleLog(`⏳ Exponential Backoff: Waiting ${event.delayMs}ms before attempt ${event.attempt}...`, 'backoff');
+
+      case 'BACKOFF_START':
+      case 'BACKOFF_TICK':
+        currentSyncState.isRetrying = true;
+        currentSyncState.attemptNumber = event.attempt;
+        currentSyncState.maxRetries = event.maxRetries;
+
+        showUserRetryBanner();
+        if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
+
+        if (bannerStatusText) {
+          bannerStatusText.textContent = `Syncing with regional distribution hubs... Retrying attempt ${event.attempt} of ${event.maxRetries + 1}`;
+        }
+        if (bannerAttemptBadge) {
+          bannerAttemptBadge.textContent = `Retrying attempt ${event.attempt} of ${event.maxRetries + 1}`;
+        }
+        if (bannerCountdownMsg) {
+          bannerCountdownMsg.textContent = `Exponential backoff delay active...`;
+        }
+        if (bannerCountdownTime) {
+          const sec = (event.remainingMs / 1000).toFixed(1);
+          bannerCountdownTime.textContent = `${sec}s remaining`;
+        }
+        if (backoffProgressFill) {
+          backoffProgressFill.style.width = `${event.progressPercent}%`;
+        }
         break;
-      case 'ATTEMPT_FAILED':
-        addConsoleLog(`⚠️ Attempt ${event.attempt} failed (${event.error}). ${event.willRetry ? 'Retrying...' : 'Exhausted.'}`, 'error');
-        break;
+
       case 'ATTEMPT_SUCCESS':
-        addConsoleLog(`✅ Attempt ${event.attempt} succeeded in ${event.durationMs}ms (HTTP ${event.status})`, 'success');
+        currentSyncState.isRetrying = false;
+        currentSyncState.isFallbackActive = false;
+
+        if (backoffProgressFill) backoffProgressFill.style.width = `100%`;
+        if (bannerStatusText) bannerStatusText.textContent = `Successfully synced with regional distribution hubs!`;
+        
+        setTimeout(() => {
+          hideUserRetryBanner();
+        }, 800);
+
+        if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
         break;
-      case 'CONFIG_CHANGE':
-        addConsoleLog(`🔧 ${event.text}`, 'warn');
+
+      case 'RETRY_EXHAUSTED':
+        currentSyncState.isRetrying = false;
+        currentSyncState.isFallbackActive = true;
+
+        hideUserRetryBanner();
+        if (customerFallbackCard) customerFallbackCard.classList.remove('hidden');
+        if (syncStatusText) syncStatusText.textContent = 'Using Offline Stock Snapshot';
+        if (pulseDot) pulseDot.className = 'pulse-dot error';
         break;
     }
+
+    // Re-render current inventory view to update component bindings
+    const currentQuery = searchInput.value;
+    const currentCat = categoryFilter.value;
+    let filtered = syncService.queryStock(currentQuery);
+    if (currentCat !== 'all') {
+      filtered = filtered.filter(i => i.category.toLowerCase() === currentCat.toLowerCase());
+    }
+    renderInventory(filtered);
   });
 
-  // Render Product Inventory Cards
+  // Render Product Inventory Cards with UI Component Binding
   function renderInventory(items) {
     if (!items || items.length === 0) {
       inventoryGrid.innerHTML = `
@@ -102,6 +177,31 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="wh-tag">${wh}: <strong>${count}</strong></span>
       `).join('') : '';
 
+      // Live component binding for retry/backoff state
+      let retryStatusMarkup = '';
+      if (currentSyncState.isRetrying) {
+        retryStatusMarkup = `
+          <div class="card-retry-badge retry-active">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Retrying Attempt ${currentSyncState.attemptNumber}/${currentSyncState.maxRetries + 1}...
+          </div>
+        `;
+      } else if (currentSyncState.isFallbackActive) {
+        retryStatusMarkup = `
+          <div class="card-retry-badge fallback-mode">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            Offline Verified Stock Snapshot
+          </div>
+        `;
+      } else {
+        retryStatusMarkup = `
+          <div class="card-retry-badge">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            Live Synced (Backoff Active)
+          </div>
+        `;
+      }
+
       return `
         <article class="product-card">
           <div>
@@ -116,10 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="product-price">KSh ${item.price.toLocaleString()}</span>
             </div>
 
-            <div style="font-size: 0.72rem; color: var(--sage-green-dark); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-              Retry & Exponential Backoff Active
-            </div>
+            ${retryStatusMarkup}
 
             <div class="stock-meter-container">
               <div class="stock-meter-labels">
@@ -159,22 +256,24 @@ document.addEventListener('DOMContentLoaded', () => {
   syncService.subscribe((state, items) => {
     metricRetriesCount.textContent = state.retriesTriggered || 0;
 
-    if (state.status === 'SYNCING') {
-      pulseDot.className = 'pulse-dot syncing';
-      syncStatusText.textContent = 'Syncing Inventory...';
-    } else if (state.status === 'SUCCESS') {
-      pulseDot.className = 'pulse-dot';
-      syncStatusText.textContent = 'Live Sync Active';
-      lastSyncTimestamp.textContent = `Last Sync: ${state.lastSyncTime || 'Just now'}`;
-    } else if (state.status === 'ERROR') {
-      pulseDot.className = 'pulse-dot error';
-      syncStatusText.textContent = 'Sync Warning (Retrying)';
+    if (!currentSyncState.isFallbackActive) {
+      if (state.status === 'SYNCING') {
+        pulseDot.className = 'pulse-dot syncing';
+        syncStatusText.textContent = currentSyncState.isRetrying 
+          ? `Retrying Attempt ${currentSyncState.attemptNumber}...`
+          : 'Syncing Inventory...';
+      } else if (state.status === 'SUCCESS') {
+        pulseDot.className = 'pulse-dot';
+        syncStatusText.textContent = 'Live Sync Active';
+        lastSyncTimestamp.textContent = `Last Sync: ${state.lastSyncTime || 'Just now'}`;
+      } else if (state.status === 'ERROR') {
+        pulseDot.className = 'pulse-dot error';
+        syncStatusText.textContent = 'Sync Error (Retrying)';
+      }
     }
 
-    // Filter items based on current search input
     const currentQuery = searchInput.value;
     const currentCat = categoryFilter.value;
-
     let filtered = syncService.queryStock(currentQuery);
     if (currentCat !== 'all') {
       filtered = filtered.filter(i => i.category.toLowerCase() === currentCat.toLowerCase());
@@ -201,9 +300,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Force Sync Button
   btnForceSync.addEventListener('click', async () => {
-    addConsoleLog('🔄 Manual Force Live Sync initiated by Support Agent.', 'info');
+    if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
     await syncService.performSync(true);
   });
+
+  // Fallback Action Buttons
+  if (btnFallbackRetry) {
+    btnFallbackRetry.addEventListener('click', async () => {
+      if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
+      await syncService.performSync(true);
+    });
+  }
+
+  if (btnDismissFallback) {
+    btnDismissFallback.addEventListener('click', () => {
+      if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
+    });
+  }
 
   // Retry Controls Listeners
   inputMaxRetries.addEventListener('input', (e) => {
@@ -238,15 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Test Retry Run
   btnTestRetry.addEventListener('click', async () => {
-    addConsoleLog('🧪 Running Resilient Sync Test with current fault settings...', 'warn');
+    if (customerFallbackCard) customerFallbackCard.classList.add('hidden');
     await syncService.performSync(true);
   });
-
-  if (btnClearLog) {
-    btnClearLog.addEventListener('click', () => {
-      if (consoleLogs) consoleLogs.innerHTML = '';
-    });
-  }
 
   // Start Sync Engine
   syncService.startAutoSync();

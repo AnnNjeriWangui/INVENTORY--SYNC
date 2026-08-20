@@ -102,6 +102,51 @@
         </div>
       </section>
 
+      <!-- User-Facing Live Retry & Exponential Backoff Feedback Banner -->
+      <div id="userRetryBanner" class="user-retry-banner hidden">
+        <div class="banner-header-row">
+          <div class="banner-title-text">
+            <svg width="20" height="20" class="pulse-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span id="bannerStatusText">Syncing with regional distribution hubs...</span>
+          </div>
+          <span id="bannerAttemptBadge" class="banner-badge-counter">Retrying attempt 2 of 4</span>
+        </div>
+
+        <div class="banner-countdown-text">
+          <span id="bannerCountdownMsg">Waiting 400ms before attempt 2...</span>
+          <span id="bannerCountdownTime">0.4s remaining</span>
+        </div>
+
+        <!-- Visual Countdown Progress Track -->
+        <div class="backoff-countdown-track">
+          <div id="backoffProgressFill" class="backoff-countdown-fill"></div>
+        </div>
+      </div>
+
+      <!-- Friendly Customer Fallback Alert Card (Exhausted Retries) -->
+      <div id="customerFallbackCard" class="customer-fallback-card hidden">
+        <div class="fallback-header">
+          <div class="fallback-icon">⚠️</div>
+          <div>
+            <div class="fallback-title">Unable to reach regional distribution hubs</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Exhausted max retry attempts. Displaying last verified stock snapshot.</div>
+          </div>
+        </div>
+        
+        <p class="fallback-message">
+          We couldn't reach our regional inventory servers right now. Displaying the <strong>last verified stock snapshot</strong>. Our automated system will continue background health checks.
+        </p>
+
+        <div class="fallback-actions">
+          <button class="btn btn-espresso" id="btnFallbackRetry">
+            🔄 Retry Live Sync Now
+          </button>
+          <button class="btn btn-outline" id="btnDismissFallback">
+            Dismiss Alert
+          </button>
+        </div>
+      </div>
+
       <!-- Live Inventory Catalog Section -->
       <section class="section-card">
         <div class="section-title-bar">

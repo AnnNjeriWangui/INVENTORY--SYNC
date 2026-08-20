@@ -47,10 +47,60 @@ export class RetryBackoffHandler {
     }
 
     /**
-     * Executes an async task with automatic retries and exponential backoff
+     * High-resolution countdown delay with live UI tick callbacks
+     */
+    async sleepWithCountdown(delayMs, attempt, maxRetries) {
+        const startTime = Date.now();
+        const tickInterval = 50; // ms
+
+        if (this.onAttempt) {
+            this.onAttempt({
+                type: 'BACKOFF_START',
+                attempt,
+                maxRetries,
+                delayMs,
+                remainingMs: delayMs,
+                progressPercent: 0
+            });
+        }
+
+        while (Date.now() - startTime < delayMs) {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, delayMs - elapsed);
+            const percent = Math.min(100, Math.round((elapsed / delayMs) * 100));
+
+            if (this.onAttempt) {
+                this.onAttempt({
+                    type: 'BACKOFF_TICK',
+                    attempt,
+                    maxRetries,
+                    delayMs,
+                    remainingMs: remaining,
+                    progressPercent: percent
+                });
+            }
+
+            await new Promise(res => setTimeout(res, tickInterval));
+        }
+
+        if (this.onAttempt) {
+            this.onAttempt({
+                type: 'BACKOFF_COMPLETE',
+                attempt,
+                maxRetries,
+                delayMs,
+                remainingMs: 0,
+                progressPercent: 100
+            });
+        }
+    }
+
+    /**
+     * Executes an async task with automatic retries, exponential backoff, and live UI binding callbacks
      */
     async execute(asyncTask) {
         let attempt = 1;
+        const totalAttemptsMax = this.maxRetries + 1;
         const telemetry = {
             startTime: Date.now(),
             attempts: [],
@@ -58,20 +108,12 @@ export class RetryBackoffHandler {
             totalDelayMs: 0
         };
 
-        while (attempt <= this.maxRetries + 1) {
+        while (attempt <= totalAttemptsMax) {
             const delay = this.calculateDelay(attempt);
             if (delay > 0) {
                 telemetry.totalRetries++;
                 telemetry.totalDelayMs += delay;
-                if (this.onAttempt) {
-                    this.onAttempt({
-                        type: 'BACKOFF_WAIT',
-                        attempt,
-                        delayMs: delay,
-                        maxRetries: this.maxRetries
-                    });
-                }
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await this.sleepWithCountdown(delay, attempt, this.maxRetries);
             }
 
             const attemptStart = Date.now();
@@ -80,14 +122,14 @@ export class RetryBackoffHandler {
                     this.onAttempt({
                         type: 'ATTEMPT_START',
                         attempt,
-                        maxRetries: this.maxRetries
+                        maxRetries: this.maxRetries,
+                        totalAttemptsMax
                     });
                 }
 
                 const result = await asyncTask(attempt);
                 const duration = Date.now() - attemptStart;
 
-                // Check for HTTP response object
                 const status = result && typeof result.status === 'number' ? result.status : 200;
                 
                 if (status >= 400 && this.isRetryable(null, status)) {
@@ -107,11 +149,20 @@ export class RetryBackoffHandler {
                             attempt,
                             status,
                             error: `HTTP ${status}`,
+                            maxRetries: this.maxRetries,
                             willRetry: attempt <= this.maxRetries
                         });
                     }
 
                     if (attempt > this.maxRetries) {
+                        if (this.onAttempt) {
+                            this.onAttempt({
+                                type: 'RETRY_EXHAUSTED',
+                                attempt,
+                                maxRetries: this.maxRetries,
+                                error: `Exhausted retries after ${attempt} attempts (HTTP ${status})`
+                            });
+                        }
                         return { success: false, status, result, telemetry, error: `Exhausted retries after ${attempt} attempts (HTTP ${status})` };
                     }
                     attempt++;
@@ -132,6 +183,7 @@ export class RetryBackoffHandler {
                     this.onAttempt({
                         type: 'ATTEMPT_SUCCESS',
                         attempt,
+                        maxRetries: this.maxRetries,
                         status,
                         durationMs: duration
                     });
@@ -157,17 +209,34 @@ export class RetryBackoffHandler {
                         attempt,
                         status: err.status || 0,
                         error: err.message,
+                        maxRetries: this.maxRetries,
                         willRetry: attempt <= this.maxRetries && this.isRetryable(err, err.status)
                     });
                 }
 
                 if (attempt > this.maxRetries || !this.isRetryable(err, err.status)) {
+                    if (this.onAttempt) {
+                        this.onAttempt({
+                            type: 'RETRY_EXHAUSTED',
+                            attempt,
+                            maxRetries: this.maxRetries,
+                            error: err.message
+                        });
+                    }
                     return { success: false, status: err.status || 0, telemetry, error: err.message };
                 }
                 attempt++;
             }
         }
 
+        if (this.onAttempt) {
+            this.onAttempt({
+                type: 'RETRY_EXHAUSTED',
+                attempt: this.maxRetries + 1,
+                maxRetries: this.maxRetries,
+                error: 'Maximum retry attempts reached'
+            });
+        }
         return { success: false, telemetry, error: 'Maximum retry attempts reached' };
     }
 }
