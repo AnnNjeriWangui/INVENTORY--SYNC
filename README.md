@@ -10,21 +10,23 @@ An enterprise-grade, resilient live inventory sync service built for **Northstar
    - Query stock counts by SKU, product name, category, or warehouse location.
    - Real-time stock status breakdown (`In Stock`, `Low Stock`, `Out of Stock`) and reserved inventory tracking.
 
-2. **Resilient Retry & Exponential Backoff Engine**:
+2. **Resilient Retry & Exponential Backoff Engine (Under the Hood)**:
    - **Exponential Backoff**: Configurable multiplier ($delay = base \times factor^{(attempt-1)}$).
    - **Jitter Strategies**: Supports **Full Jitter** (random uniform range $[0, capped\_delay]$) and **Equal Jitter** to prevent thundering herd spikes on supplier APIs.
-   - **Configurable Controls**: Dynamic max retries (1–6), base delay (100ms–2000ms), and max delay caps.
+   - **Automatic Resilience**: Production defaults (`maxRetries: 3`, `baseDelay: 500ms`, `jitterMode: 'full'`) running in the background without UI clutter.
    - **Transient Error Filtering**: Automatic retry triggers for `408`, `429 Rate Limit`, `500`, `502`, `503 Service Unavailable`, `504 Gateway Timeout`, and socket drops.
 
-3. **Live Fault & Latency Simulator**:
-   - In-app simulator to test system resilience against simulated HTTP 503 errors, 429 rate limits, 50% flaky connections, and high network latency.
+3. **Customer-Facing Sync Status & State Machine**:
+   - Explicit 5-state UI state machine (`idle`, `syncing`, `retrying`, `success`, `failed`).
+   - Dynamic 4-state Customer Sync Banner (CSB) with animated backoff countdown progress bar and per-card status badges.
+   - Graceful degradation snapshot fallback with single-click retry action.
 
-4. **Real-Time Telemetry & Log Console**:
-   - Live stream of API attempt events, backoff wait durations, retry counters, and HTTP status codes.
+4. **Learning & Blocker Journal**:
+   - Comprehensive technical documentation in `LEARNING_JOURNAL.md` covering consulted resources, error logs, and autonomous blocker resolutions.
 
 5. **Vercel Serverless & Static Ready**:
-   - Serverless Python functions in `/api` (`api/inventory.py`, `api/sync.py`, `api/health.py`).
-   - Configured via `vercel.json` for static hosting and Python serverless runtimes.
+   - Serverless Python functions in `/api` and root `index.py`.
+   - Configured via `vercel.json` for zero-config static hosting and Python serverless runtimes.
 
 6. **Design Aesthetic**:
    - Primary Theme: **Sage Green** (`#7D9D84` / `#4E6E58`), **Slate Blue** (`#2C3E50` / `#475569`), and **Espresso Brown** (`#3D2314` / `#4A2E1B`).
