@@ -102,6 +102,13 @@
         </div>
       </section>
 
+      <!-- Explicit Sync State Machine Status Strip -->
+      <div class="sm-status-strip" id="smStatePill" data-state="idle">
+        <span class="sm-state-dot"></span>
+        <span class="sm-state-label" id="smStateLabel">Idle</span>
+        <span class="sm-state-desc">UI-Driven Sync State Machine active — transitions: idle → syncing → retrying → success / failed</span>
+      </div>
+
       <!-- User-Facing Live Retry & Exponential Backoff Feedback Banner -->
       <div id="userRetryBanner" class="user-retry-banner hidden">
         <div class="banner-header-row">
@@ -155,6 +162,17 @@
             Live Inventory Catalog
           </h2>
           <span style="font-size: 0.8rem; color: var(--text-muted);" id="lastSyncTimestamp">Last Sync: Just now</span>
+        </div>
+
+        <!-- Grid Sync Overlay — shown during 'retrying' state to lock the catalog -->
+        <div id="gridSyncOverlay" class="grid-sync-overlay hidden">
+          <div class="overlay-inner">
+            <div class="overlay-spinner"></div>
+            <div class="overlay-retry-text">
+              <strong id="overlayRetryMsg">Retrying attempt 2 of 4...</strong>
+              <span id="overlayRetrySub">Exponential backoff — waiting before next attempt</span>
+            </div>
+          </div>
         </div>
 
         <div class="inventory-grid" id="inventoryGrid">

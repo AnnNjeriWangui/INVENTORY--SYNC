@@ -793,3 +793,134 @@ body {
   border-color: var(--espresso-brown-light);
   color: var(--espresso-brown-primary);
 }
+
+/* ─── Explicit Sync State Machine Status Strip ─────────────────────────── */
+.sm-status-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Dot colour per state */
+.sm-state-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94A3B8;
+  transition: background 0.25s ease;
+}
+
+.sm-status-strip[data-state="idle"]     .sm-state-dot { background: #94A3B8; }
+.sm-status-strip[data-state="syncing"]  .sm-state-dot { background: #3B82F6; animation: smPulse 1s infinite; }
+.sm-status-strip[data-state="retrying"] .sm-state-dot { background: #F59E0B; animation: smPulse 0.6s infinite; }
+.sm-status-strip[data-state="success"]  .sm-state-dot { background: var(--sage-green-primary); }
+.sm-status-strip[data-state="failed"]   .sm-state-dot { background: #EF4444; }
+
+/* Strip background tint per state */
+.sm-status-strip[data-state="syncing"]  { background: #EFF6FF; border-color: #BFDBFE; }
+.sm-status-strip[data-state="retrying"] { background: #FFFBEB; border-color: #FDE68A; }
+.sm-status-strip[data-state="success"]  { background: var(--sage-green-bg); border-color: var(--sage-green-primary); }
+.sm-status-strip[data-state="failed"]   { background: #FEF2F2; border-color: #FECACA; }
+
+.sm-state-label {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: var(--text-main);
+  min-width: 72px;
+}
+
+.sm-state-desc {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes smPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* ─── Grid Sync Overlay (shown during 'retrying' state) ────────────────── */
+.section-card {
+  position: relative;  /* anchor for the overlay */
+}
+
+.grid-sync-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(3px);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.grid-sync-overlay.hidden { display: none !important; }
+
+.overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* CSS-only animated spinner ring */
+.overlay-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--sage-green-bg);
+  border-top-color: var(--sage-green-primary);
+  border-right-color: #F59E0B;
+  border-radius: 50%;
+  animation: overlaySpinRing 0.8s linear infinite;
+}
+
+@keyframes overlaySpinRing {
+  to { transform: rotate(360deg); }
+}
+
+.overlay-retry-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.overlay-retry-text strong {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--slate-blue-primary);
+}
+
+.overlay-retry-text span {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ─── Product card 'waiting' dim during retrying ────────────────────────── */
+.product-card.card-waiting {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(0.25);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
