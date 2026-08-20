@@ -1,0 +1,5 @@
+# Files to exclude from Vercel deployment bundle
+tests/
+__pycache__/
+*.pyc
+.gitignore
