@@ -7,16 +7,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1001",
         "name": "Northstar Summit Waterproof Parka",
         "category": "Outerwear",
-        "price": 189.99,
+        "price": 24500,
         "total_stock": 42,
         "reserved": 5,
         "available": 37,
         "status": "In Stock",
         "warehouses": {
-            "Seattle Hub": 18,
-            "Chicago Hub": 12,
-            "Dallas Hub": 7,
-            "NYC Express": 5
+            "Nairobi Hub": 18,
+            "Mombasa Hub": 12,
+            "Kisumu Hub": 7,
+            "Nakuru Express": 5
         },
         "last_sync": "2026-08-20T08:00:00Z"
     },
@@ -24,16 +24,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1002",
         "name": "Cascade Ergonomic Support Backpack 30L",
         "category": "Accessories",
-        "price": 129.50,
+        "price": 16800,
         "total_stock": 6,
         "reserved": 4,
         "available": 2,
         "status": "Low Stock",
         "warehouses": {
-            "Seattle Hub": 2,
-            "Chicago Hub": 0,
-            "Dallas Hub": 0,
-            "NYC Express": 4
+            "Nairobi Hub": 2,
+            "Mombasa Hub": 0,
+            "Eldoret Depot": 0,
+            "Kisumu Hub": 4
         },
         "last_sync": "2026-08-20T08:05:00Z"
     },
@@ -41,16 +41,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1003",
         "name": "Glacier Thermal Base Layer (Merino Wool)",
         "category": "Apparel",
-        "price": 79.99,
+        "price": 10500,
         "total_stock": 115,
         "reserved": 10,
         "available": 105,
         "status": "In Stock",
         "warehouses": {
-            "Seattle Hub": 50,
-            "Chicago Hub": 35,
-            "Dallas Hub": 20,
-            "NYC Express": 10
+            "Nairobi Hub": 50,
+            "Mombasa Hub": 35,
+            "Kisumu Hub": 20,
+            "Nakuru Express": 10
         },
         "last_sync": "2026-08-20T08:10:00Z"
     },
@@ -58,16 +58,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1004",
         "name": "Apex Trail Running Shoes (Size 10.5)",
         "category": "Footwear",
-        "price": 154.00,
+        "price": 19900,
         "total_stock": 0,
         "reserved": 0,
         "available": 0,
         "status": "Out of Stock",
         "warehouses": {
-            "Seattle Hub": 0,
-            "Chicago Hub": 0,
-            "Dallas Hub": 0,
-            "NYC Express": 0
+            "Nairobi Hub": 0,
+            "Mombasa Hub": 0,
+            "Kisumu Hub": 0,
+            "Nakuru Express": 0
         },
         "last_sync": "2026-08-20T08:12:00Z"
     },
@@ -75,16 +75,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1005",
         "name": "Vanguard All-Terrain Hydration Vest",
         "category": "Accessories",
-        "price": 89.00,
+        "price": 11500,
         "total_stock": 24,
         "reserved": 3,
         "available": 21,
         "status": "In Stock",
         "warehouses": {
-            "Seattle Hub": 10,
-            "Chicago Hub": 8,
-            "Dallas Hub": 4,
-            "NYC Express": 2
+            "Nairobi Hub": 10,
+            "Mombasa Hub": 8,
+            "Kisumu Hub": 4,
+            "Nakuru Express": 2
         },
         "last_sync": "2026-08-20T08:14:00Z"
     },
@@ -92,16 +92,16 @@ INVENTORY_DATA = [
         "sku": "NSR-1006",
         "name": "Polaris Insulated Stainless Tumbler 32oz",
         "category": "Gear",
-        "price": 34.99,
+        "price": 4500,
         "total_stock": 3,
         "reserved": 1,
         "available": 2,
         "status": "Low Stock",
         "warehouses": {
-            "Seattle Hub": 1,
-            "Chicago Hub": 1,
-            "Dallas Hub": 1,
-            "NYC Express": 0
+            "Nairobi Hub": 1,
+            "Mombasa Hub": 1,
+            "Eldoret Depot": 1,
+            "Kisumu Hub": 0
         },
         "last_sync": "2026-08-20T08:14:15Z"
     }

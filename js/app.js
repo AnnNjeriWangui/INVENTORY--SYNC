@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 class="product-title">${item.name}</h3>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="font-size: 0.78rem; color: var(--text-muted);">${item.category}</span>
-              <span class="product-price">$${item.price.toFixed(2)}</span>
+              <span class="product-price">KSh ${item.price.toLocaleString()}</span>
             </div>
 
             <div class="stock-meter-container">
