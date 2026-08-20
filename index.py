@@ -3,11 +3,12 @@ Northstar Retail Co. - Flask API Entrypoint for Vercel
 Sprint 2: Live Inventory Sync Service
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
+import os
 import time
 import random
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 
 INVENTORY_DATA = [
     {
@@ -114,6 +115,10 @@ INVENTORY_DATA = [
     }
 ]
 
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({
@@ -173,6 +178,12 @@ def sync():
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         }
     })
+
+@app.route('/<path:path>')
+def serve_static(path):
+    if os.path.exists(path):
+        return send_from_directory('.', path)
+    return send_from_directory('.', 'index.html')
 
 application = app
 
