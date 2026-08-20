@@ -1,13 +1,7 @@
-"""
-Vercel Serverless Function: GET /api/inventory
-Provides live stock levels for Northstar Retail Co Support Tool.
-"""
-
-import json
 from http.server import BaseHTTPRequestHandler
+import json
 from urllib.parse import parse_qs, urlparse
 
-# Mock Database of Northstar Retail Products
 INVENTORY_DATA = [
     {
         "sku": "NSR-1001",
@@ -113,46 +107,37 @@ INVENTORY_DATA = [
     }
 ]
 
-def get_inventory_response(path):
-    url_parts = urlparse(path)
-    query_params = parse_qs(url_parts.query)
-    
-    query = query_params.get("q", [""])[0].lower()
-    sku = query_params.get("sku", [""])[0].upper()
-    category = query_params.get("category", [""])[0].lower()
-
-    filtered = INVENTORY_DATA
-    if sku:
-        filtered = [item for item in filtered if item["sku"] == sku]
-    elif query:
-        filtered = [
-            item for item in filtered 
-            if query in item["name"].lower() or query in item["sku"].lower() or query in item["category"].lower()
-        ]
-
-    if category and category != "all":
-        filtered = [item for item in filtered if item["category"].lower() == category]
-
-    return {
-        "client": "Northstar Retail Co.",
-        "sprint": "Sprint 2",
-        "count": len(filtered),
-        "items": filtered
-    }
-
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        resp = get_inventory_response(self.path)
+        url_parts = urlparse(self.path)
+        query_params = parse_qs(url_parts.query)
+        
+        query = query_params.get("q", [""])[0].lower()
+        sku = query_params.get("sku", [""])[0].upper()
+        category = query_params.get("category", [""])[0].lower()
+
+        filtered = INVENTORY_DATA
+        if sku:
+            filtered = [item for item in filtered if item["sku"] == sku]
+        elif query:
+            filtered = [
+                item for item in filtered 
+                if query in item["name"].lower() or query in item["sku"].lower() or query in item["category"].lower()
+            ]
+
+        if category and category != "all":
+            filtered = [item for item in filtered if item["category"].lower() == category]
+
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write(json.dumps(resp).encode('utf-8'))
-
-def app(environ, start_response):
-    path = environ.get('PATH_INFO', '') + ('?' + environ.get('QUERY_STRING', '') if environ.get('QUERY_STRING') else '')
-    resp = get_inventory_response(path)
-    start_response('200 OK', [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
-    return [json.dumps(resp).encode('utf-8')]
-
-application = app
+        
+        response = {
+            "client": "Northstar Retail Co.",
+            "sprint": "Sprint 2",
+            "count": len(filtered),
+            "items": filtered
+        }
+        self.wfile.write(json.dumps(response).encode('utf-8'))
+        return

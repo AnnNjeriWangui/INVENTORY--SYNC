@@ -1,9 +1,16 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "src": "/api/health",
+      "dest": "/api/health.py"
+    },
+    {
+      "src": "/api/inventory",
+      "dest": "/api/inventory.py"
+    },
+    {
+      "src": "/api/sync",
+      "dest": "/api/sync.py"
     }
   ]
 }
