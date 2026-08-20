@@ -3,197 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Northstar Retail Co. - Live Inventory Sync & Support Tool (Sprint 2)</title>
-  <meta name="description" content="Live Inventory Sync Service with Exponential Backoff and Retry Logic for Northstar Retail Customer Support.">
+  <title>Northstar Retail Co. — Live Stock Check</title>
+  <meta name="description" content="Check real-time stock availability across Northstar Kenya distribution hubs — Nairobi, Mombasa, Kisumu, Nakuru, Eldoret.">
 
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- Top App Bar -->
+  <!-- ═══════════════════════════════════════════════════════════════
+       TOP APP BAR
+  ══════════════════════════════════════════════════════════════════ -->
   <header class="app-header">
     <div class="header-container">
       <div class="brand-wrapper">
         <div class="brand-logo-icon">N</div>
         <div class="brand-title-group">
           <h1>Northstar Retail Co.</h1>
-          <span class="brand-badge">Sprint 2 • Live Sync Service</span>
+          <span class="brand-badge">Live Stock · Kenya</span>
         </div>
       </div>
 
       <div class="header-actions">
         <div class="sync-status-indicator" id="syncStatusBadge">
           <div class="pulse-dot" id="pulseDot"></div>
-          <span id="syncStatusText">Sync Engine Ready</span>
+          <span id="syncStatusText">Ready</span>
         </div>
-
         <button class="btn btn-primary" id="btnForceSync">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          Force Live Sync
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Refresh Stock
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Main Content Layout -->
+  <!-- ═══════════════════════════════════════════════════════════════
+       HERO SEARCH — THE CUSTOMER'S ENTRY POINT
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="hero-search-zone">
+    <p class="hero-eyebrow">Check availability across Nairobi · Mombasa · Kisumu · Nakuru · Eldoret</p>
+    <h2 class="hero-title">Is it in stock near you?</h2>
+
+    <!-- ── Search bar — visually locks during any sync state ─────── -->
+    <div class="search-shell" id="searchShell">
+      <div class="search-lock-ring" id="searchLockRing"></div>
+      <svg class="search-icon-left" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-field"
+        placeholder="Type a product name or SKU — e.g. NSR-1001, Parka, Backpack..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <div class="search-spinner" id="searchSpinner"></div>
+      <select id="categoryFilter" class="category-pill">
+        <option value="all">All</option>
+        <option value="outerwear">Outerwear</option>
+        <option value="apparel">Apparel</option>
+        <option value="accessories">Accessories</option>
+        <option value="footwear">Footwear</option>
+        <option value="gear">Gear</option>
+      </select>
+    </div>
+
+    <p class="search-hint" id="searchHint">Results update live as you type — stock is verified against all distribution hubs</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CUSTOMER SYNC STATUS BANNER
+       Shown for: syncing · retrying · success · failed
+       This is the PRIMARY customer-facing feedback surface.
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="customer-sync-banner" id="customerSyncBanner" data-state="hidden">
+
+    <!-- SYNCING state -->
+    <div class="csb-panel csb-syncing" id="csbSyncing">
+      <div class="csb-spinner-ring"></div>
+      <div class="csb-text">
+        <strong>Checking stock across distribution hubs...</strong>
+        <span>Connecting to Nairobi · Mombasa · Kisumu · Nakuru · Eldoret</span>
+      </div>
+    </div>
+
+    <!-- RETRYING state -->
+    <div class="csb-panel csb-retrying" id="csbRetrying">
+      <div class="csb-retry-top">
+        <div class="csb-warn-icon">⚡</div>
+        <div class="csb-text">
+          <strong id="csbRetryHeadline">Distribution hubs are busy. Reconnecting...</strong>
+          <span id="csbRetrySubline">(Attempt 2 of 3) — Next retry in 800ms</span>
+        </div>
+        <span class="csb-attempt-pill" id="csbAttemptPill">2 / 3</span>
+      </div>
+      <!-- Live backoff countdown bar -->
+      <div class="csb-countdown-track">
+        <div class="csb-countdown-fill" id="csbCountdownFill"></div>
+      </div>
+      <div class="csb-countdown-row">
+        <span id="csbCountdownLabel">Waiting for exponential backoff delay...</span>
+        <span class="csb-countdown-time" id="csbCountdownTime">0.8s</span>
+      </div>
+    </div>
+
+    <!-- SUCCESS state -->
+    <div class="csb-panel csb-success" id="csbSuccess">
+      <div class="csb-success-icon">✓</div>
+      <div class="csb-text">
+        <strong>Stock sync successful!</strong>
+        <span id="csbSuccessDetail">Live stock data loaded from all hubs</span>
+      </div>
+    </div>
+
+    <!-- FAILED state -->
+    <div class="csb-panel csb-failed" id="csbFailed">
+      <div class="csb-fail-icon">⚠</div>
+      <div class="csb-text">
+        <strong>Couldn't reach distribution hubs right now</strong>
+        <span>Showing last verified stock snapshot — data may be a few minutes old</span>
+      </div>
+      <button class="csb-retry-btn" id="btnFallbackRetry">Try Again</button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MAIN CONTENT — STOCK RESULTS + SIDEBAR CONTROLS
+  ══════════════════════════════════════════════════════════════════ -->
   <main class="main-container">
 
-    <!-- Left Column: Support Tool & Inventory -->
+    <!-- Stock results column -->
     <div class="main-content-col">
-      
-      <!-- Support Agent Quick Search Hero Card -->
-      <section class="hero-search-card">
-        <div class="hero-header-title">
-          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          Customer Support Instant Stock Inquiry ("Is this in stock?")
-        </div>
-        <p style="font-size: 0.88rem; color: var(--text-muted);">Search by SKU, product name, or product category across all Northstar Kenya distribution hubs (Nairobi, Mombasa, Kisumu, Nakuru, Eldoret).</p>
-        
-        <div class="search-input-wrapper">
-          <input type="text" id="searchInput" class="input-search" placeholder="Type SKU (e.g. NSR-1001) or product name..." autocomplete="off">
-          <select id="categoryFilter" class="form-select" style="max-width: 180px;">
-            <option value="all">All Categories</option>
-            <option value="outerwear">Outerwear</option>
-            <option value="apparel">Apparel</option>
-            <option value="accessories">Accessories</option>
-            <option value="footwear">Footwear</option>
-            <option value="gear">Gear</option>
-          </select>
-        </div>
-      </section>
 
-      <!-- Quick Metrics Row -->
-      <section class="metrics-row">
-        <div class="metric-card">
-          <div class="metric-icon sage">📦</div>
-          <div>
-            <div class="metric-val" id="metricTotalSkus">6</div>
-            <div class="metric-lbl">Total SKUs</div>
-          </div>
+      <!-- Metrics strip -->
+      <div class="metrics-strip">
+        <div class="ms-item">
+          <span class="ms-val" id="metricTotalSkus">6</span>
+          <span class="ms-lbl">Products</span>
         </div>
-
-        <div class="metric-card">
-          <div class="metric-icon espresso">✅</div>
-          <div>
-            <div class="metric-val" id="metricInStock">4</div>
-            <div class="metric-lbl">In Stock</div>
-          </div>
+        <div class="ms-sep"></div>
+        <div class="ms-item">
+          <span class="ms-val green" id="metricInStock">4</span>
+          <span class="ms-lbl">In Stock</span>
         </div>
-
-        <div class="metric-card">
-          <div class="metric-icon amber">⚠️</div>
-          <div>
-            <div class="metric-val" id="metricLowStock">2</div>
-            <div class="metric-lbl">Low Stock Alert</div>
-          </div>
+        <div class="ms-sep"></div>
+        <div class="ms-item">
+          <span class="ms-val amber" id="metricLowStock">2</span>
+          <span class="ms-lbl">Low Stock</span>
         </div>
-
-        <div class="metric-card">
-          <div class="metric-icon slate">🔄</div>
-          <div>
-            <div class="metric-val" id="metricRetriesCount">0</div>
-            <div class="metric-lbl">Retries Handled</div>
-          </div>
+        <div class="ms-sep"></div>
+        <div class="ms-item">
+          <span class="ms-val slate" id="metricRetriesCount">0</span>
+          <span class="ms-lbl">Retries This Session</span>
         </div>
-      </section>
-
-      <!-- Explicit Sync State Machine Status Strip -->
-      <div class="sm-status-strip" id="smStatePill" data-state="idle">
-        <span class="sm-state-dot"></span>
-        <span class="sm-state-label" id="smStateLabel">Idle</span>
-        <span class="sm-state-desc">UI-Driven Sync State Machine active — transitions: idle → syncing → retrying → success / failed</span>
-      </div>
-
-      <!-- User-Facing Live Retry & Exponential Backoff Feedback Banner -->
-      <div id="userRetryBanner" class="user-retry-banner hidden">
-        <div class="banner-header-row">
-          <div class="banner-title-text">
-            <svg width="20" height="20" class="pulse-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <span id="bannerStatusText">Syncing with regional distribution hubs...</span>
-          </div>
-          <span id="bannerAttemptBadge" class="banner-badge-counter">Retrying attempt 2 of 4</span>
-        </div>
-
-        <div class="banner-countdown-text">
-          <span id="bannerCountdownMsg">Waiting 400ms before attempt 2...</span>
-          <span id="bannerCountdownTime">0.4s remaining</span>
-        </div>
-
-        <!-- Visual Countdown Progress Track -->
-        <div class="backoff-countdown-track">
-          <div id="backoffProgressFill" class="backoff-countdown-fill"></div>
+        <div class="ms-sep"></div>
+        <div class="ms-item">
+          <span class="ms-val" id="lastSyncTimestamp" style="font-size:.78rem;font-weight:500;">Just now</span>
+          <span class="ms-lbl">Last Sync</span>
         </div>
       </div>
 
-      <!-- Friendly Customer Fallback Alert Card (Exhausted Retries) -->
-      <div id="customerFallbackCard" class="customer-fallback-card hidden">
-        <div class="fallback-header">
-          <div class="fallback-icon">⚠️</div>
-          <div>
-            <div class="fallback-title">Unable to reach regional distribution hubs</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Exhausted max retry attempts. Displaying last verified stock snapshot.</div>
-          </div>
-        </div>
-        
-        <p class="fallback-message">
-          We couldn't reach our regional inventory servers right now. Displaying the <strong>last verified stock snapshot</strong>. Our automated system will continue background health checks.
-        </p>
-
-        <div class="fallback-actions">
-          <button class="btn btn-espresso" id="btnFallbackRetry">
-            🔄 Retry Live Sync Now
-          </button>
-          <button class="btn btn-outline" id="btnDismissFallback">
-            Dismiss Alert
-          </button>
-        </div>
-      </div>
-
-      <!-- Live Inventory Catalog Section -->
-      <section class="section-card">
-        <div class="section-title-bar">
-          <h2 class="section-heading">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            Live Inventory Catalog
-          </h2>
-          <span style="font-size: 0.8rem; color: var(--text-muted);" id="lastSyncTimestamp">Last Sync: Just now</span>
-        </div>
-
-        <!-- Grid Sync Overlay — shown during 'retrying' state to lock the catalog -->
-        <div id="gridSyncOverlay" class="grid-sync-overlay hidden">
-          <div class="overlay-inner">
-            <div class="overlay-spinner"></div>
-            <div class="overlay-retry-text">
-              <strong id="overlayRetryMsg">Retrying attempt 2 of 4...</strong>
-              <span id="overlayRetrySub">Exponential backoff — waiting before next attempt</span>
-            </div>
+      <!-- Stock grid — locks with overlay during retrying -->
+      <section class="stock-section" id="stockSection">
+        <!-- Overlay shown while machine is in 'retrying' -->
+        <div class="stock-overlay" id="stockOverlay">
+          <div class="so-inner">
+            <div class="so-spinner"></div>
+            <p class="so-headline" id="soHeadline">Retrying connection...</p>
+            <p class="so-sub" id="soSub">Please wait while we reconnect to distribution hubs</p>
           </div>
         </div>
 
         <div class="inventory-grid" id="inventoryGrid">
-          <!-- Inventory Product Cards render dynamically here -->
+          <!-- Cards render here -->
         </div>
       </section>
 
     </div>
 
-    <!-- Right Column: Retry Settings, Simulator & Telemetry -->
+    <!-- Sidebar: retry configuration and simulator -->
     <aside class="sidebar-panel">
 
-      <!-- Retry & Exponential Backoff Settings -->
       <div class="control-widget">
         <div class="control-widget-title">
-          <span>⚙️ Retry & Backoff Config</span>
-          <span style="font-size: 0.75rem; color: var(--sage-green-dark); font-weight: 700;">ACTIVE</span>
+          <span>⚙️ Retry Config</span>
+          <span style="font-size:.75rem;color:var(--sage-green-dark);font-weight:700;">ACTIVE</span>
         </div>
 
         <div class="form-group">
-          <div style="display: flex; justify-content: space-between;" class="form-label">
+          <div style="display:flex;justify-content:space-between;" class="form-label">
             <span>Max Retries:</span>
             <span id="lblMaxRetries">3</span>
           </div>
@@ -201,7 +201,7 @@
         </div>
 
         <div class="form-group">
-          <div style="display: flex; justify-content: space-between;" class="form-label">
+          <div style="display:flex;justify-content:space-between;" class="form-label">
             <span>Base Delay (ms):</span>
             <span id="lblBaseDelay">400</span>
           </div>
@@ -213,48 +213,40 @@
           <select id="selectJitter" class="form-select">
             <option value="full" selected>Full Jitter (Recommended)</option>
             <option value="equal">Equal Jitter</option>
-            <option value="none">No Jitter (Exact Exponential)</option>
+            <option value="none">No Jitter (Exact)</option>
           </select>
         </div>
       </div>
 
-      <!-- Network Fault & Retry Simulator -->
-      <div class="control-widget" style="border-left: 4px solid var(--espresso-brown-primary);">
+      <div class="control-widget" style="border-left:4px solid var(--espresso-brown-primary);">
         <div class="control-widget-title">
-          <span>🧪 Network Fault Simulator</span>
+          <span>🧪 Network Simulator</span>
         </div>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">Simulate network failures to test retry resilience & backoff curve.</p>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.85rem;">Inject network faults to experience the retry flow as a customer would.</p>
 
         <div class="form-group">
-          <label class="form-label">Inject Fault Scenario:</label>
+          <label class="form-label">Fault Scenario:</label>
           <select id="selectSimScenario" class="form-select">
-            <option value="none">Normal Operation (0% errors)</option>
-            <option value="flaky">Flaky Connection (50% random 503)</option>
-            <option value="503">Force HTTP 503 (Service Unavailable)</option>
-            <option value="429">Force HTTP 429 (Rate Limit Exceeded)</option>
-            <option value="latency">High Latency (2000ms delay)</option>
+            <option value="none">Normal (No faults)</option>
+            <option value="flaky" selected>Flaky Network (triggers retries)</option>
+            <option value="503">Force HTTP 503</option>
+            <option value="429">Force HTTP 429</option>
+            <option value="latency">High Latency (2s delay)</option>
           </select>
         </div>
 
-        <button class="btn btn-espresso" id="btnTestRetry" style="width: 100%;">
-          Run Resilient Sync Test
+        <button class="btn btn-espresso" id="btnTestRetry" style="width:100%;">
+          ▶ Run Sync — Watch the Retry Flow
         </button>
       </div>
-
-
 
     </aside>
   </main>
 
-  <!-- Footer -->
   <footer class="app-footer">
-    <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; align-items: center;">
-      <div>
-        <strong>Northstar Retail Co.</strong> • Sprint 2 Inventory Service API
-      </div>
-      <div>
-        Backend API: <code style="color: var(--sage-green-light);">/api/inventory</code> | Sync: <code style="color: var(--sage-green-light);">/api/sync</code>
-      </div>
+    <div style="max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;align-items:center;">
+      <div><strong>Northstar Retail Co.</strong> · Live Stock Service · Kenya</div>
+      <div>Hubs: Nairobi · Mombasa · Kisumu · Nakuru · Eldoret</div>
     </div>
   </footer>
 
