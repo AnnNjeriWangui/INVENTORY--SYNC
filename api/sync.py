@@ -3,11 +3,20 @@ Vercel Serverless Function: POST /api/sync
 Triggers live inventory sync with supplier APIs using retry & exponential backoff.
 """
 
+import sys
+import os
 import json
 import time
 import random
 from http.server import BaseHTTPRequestHandler
-from api.retry_engine import BackoffConfig, execute_with_retry
+
+# Ensure current directory is in sys.path for Vercel module resolution
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    from retry_engine import BackoffConfig, execute_with_retry
+except ImportError:
+    from api.retry_engine import BackoffConfig, execute_with_retry
 
 def simulate_supplier_api(failure_rate: float = 0.0, force_status: int = 200):
     if force_status != 200 and force_status != 0:
@@ -25,6 +34,30 @@ def simulate_supplier_api(failure_rate: float = 0.0, force_status: int = 200):
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     }
 
+def process_sync(body_dict):
+    max_retries = int(body_dict.get("max_retries", 3))
+    base_delay = float(body_dict.get("base_delay", 0.5))
+    jitter_mode = body_dict.get("jitter_mode", "full")
+    failure_rate = float(body_dict.get("simulate_failure_rate", 0.0))
+    force_status = int(body_dict.get("force_status", 200))
+
+    config = BackoffConfig(max_retries=max_retries, base_delay=base_delay, jitter_mode=jitter_mode)
+    
+    result, telemetry = execute_with_retry(
+        lambda: simulate_supplier_api(failure_rate=failure_rate, force_status=force_status),
+        config=config
+    )
+    status_code, response_data = result
+    
+    resp_body = {
+        "client": "Northstar Retail Co.",
+        "sprint": "Sprint 2",
+        "status": "SUCCESS" if status_code == 200 else "FAILED",
+        "supplier_response": response_data,
+        "telemetry": telemetry.to_dict()
+    }
+    return status_code, resp_body
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
@@ -41,33 +74,34 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             body = {}
 
-        max_retries = int(body.get("max_retries", 3))
-        base_delay = float(body.get("base_delay", 0.5))
-        jitter_mode = body.get("jitter_mode", "full")
-        failure_rate = float(body.get("simulate_failure_rate", 0.0))
-        force_status = int(body.get("force_status", 200))
-
-        config = BackoffConfig(max_retries=max_retries, base_delay=base_delay, jitter_mode=jitter_mode)
-        
-        result, telemetry = execute_with_retry(
-            lambda: simulate_supplier_api(failure_rate=failure_rate, force_status=force_status),
-            config=config
-        )
-        status_code, response_data = result
+        status_code, resp_body = process_sync(body)
 
         self.send_response(status_code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-
-        resp = {
-            "client": "Northstar Retail Co.",
-            "sprint": "Sprint 2",
-            "status": "SUCCESS" if status_code == 200 else "FAILED",
-            "supplier_response": response_data,
-            "telemetry": telemetry.to_dict()
-        }
-        self.wfile.write(json.dumps(resp).encode('utf-8'))
+        self.wfile.write(json.dumps(resp_body).encode('utf-8'))
 
     def do_GET(self):
         self.do_POST()
+
+def app(environ, start_response):
+    body = {}
+    try:
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+    except (ValueError):
+        request_body_size = 0
+
+    if request_body_size > 0:
+        request_body = environ['wsgi.input'].read(request_body_size)
+        try:
+            body = json.loads(request_body.decode('utf-8'))
+        except Exception:
+            body = {}
+
+    status_code, resp_body = process_sync(body)
+    status_str = f"{status_code} OK" if status_code == 200 else f"{status_code} Error"
+    start_response(status_str, [('Content-Type', 'application/json'), ('Access-Control-Allow-Origin', '*')])
+    return [json.dumps(resp_body).encode('utf-8')]
+
+application = app

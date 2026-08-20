@@ -1,24 +1,9 @@
 {
-  "version": 2,
-  "name": "northstar-inventory-sync",
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "api/*.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     }
   ]
 }
