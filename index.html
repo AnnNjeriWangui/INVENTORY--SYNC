@@ -182,65 +182,6 @@
       </section>
 
     </div>
-
-    <!-- Sidebar: retry configuration and simulator -->
-    <aside class="sidebar-panel">
-
-      <div class="control-widget">
-        <div class="control-widget-title">
-          <span>⚙️ Retry Config</span>
-          <span style="font-size:.75rem;color:var(--sage-green-dark);font-weight:700;">ACTIVE</span>
-        </div>
-
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;" class="form-label">
-            <span>Max Retries:</span>
-            <span id="lblMaxRetries">3</span>
-          </div>
-          <input type="range" id="inputMaxRetries" class="form-range" min="1" max="6" value="3">
-        </div>
-
-        <div class="form-group">
-          <div style="display:flex;justify-content:space-between;" class="form-label">
-            <span>Base Delay (ms):</span>
-            <span id="lblBaseDelay">400</span>
-          </div>
-          <input type="range" id="inputBaseDelay" class="form-range" min="100" max="2000" step="100" value="400">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Jitter Strategy:</label>
-          <select id="selectJitter" class="form-select">
-            <option value="full" selected>Full Jitter (Recommended)</option>
-            <option value="equal">Equal Jitter</option>
-            <option value="none">No Jitter (Exact)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="control-widget" style="border-left:4px solid var(--espresso-brown-primary);">
-        <div class="control-widget-title">
-          <span>🧪 Network Simulator</span>
-        </div>
-        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.85rem;">Inject network faults to experience the retry flow as a customer would.</p>
-
-        <div class="form-group">
-          <label class="form-label">Fault Scenario:</label>
-          <select id="selectSimScenario" class="form-select">
-            <option value="none">Normal (No faults)</option>
-            <option value="flaky" selected>Flaky Network (triggers retries)</option>
-            <option value="503">Force HTTP 503</option>
-            <option value="429">Force HTTP 429</option>
-            <option value="latency">High Latency (2s delay)</option>
-          </select>
-        </div>
-
-        <button class="btn btn-espresso" id="btnTestRetry" style="width:100%;">
-          ▶ Run Sync — Watch the Retry Flow
-        </button>
-      </div>
-
-    </aside>
   </main>
 
   <footer class="app-footer">

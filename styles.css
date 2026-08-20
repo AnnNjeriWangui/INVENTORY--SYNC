@@ -234,22 +234,14 @@ body {
   color: var(--sage-green-dark);
 }
 
-/* Main Layout Grid */
+/* Main Layout Container */
 .main-container {
   max-width: 1400px;
   margin: 1.5rem auto;
   padding: 0 1.5rem;
   width: 100%;
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 1.5rem;
-}
-
-@media (max-width: 1024px) {
-  .main-container {
-    grid-template-columns: 1fr;
-  }
+  display: block;
 }
 
 /* Support Agent Quick Search Hero Card */

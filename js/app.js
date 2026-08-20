@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const syncService = new LiveInventorySyncService(apiClient, { syncIntervalMs: 30000 });
   const machine    = new SyncStateMachine();
 
-  // Default to flaky network so customers actually SEE the retry flow
-  apiClient.setSimulationConfig({ failureRate: 0.6, forcedStatusCode: 0, latencyMs: 0 });
+  // Clean live resilience defaults
+  apiClient.setSimulationConfig({ failureRate: 0.0, forcedStatusCode: 0, latencyMs: 0 });
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   // Search
@@ -70,18 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Buttons
   const btnForceSync    = document.getElementById('btnForceSync');
-  const btnTestRetry    = document.getElementById('btnTestRetry');
   const btnFallbackRetry= document.getElementById('btnFallbackRetry');
-
-  // Sidebar controls
-  const inputMaxRetries = document.getElementById('inputMaxRetries');
-  const lblMaxRetries   = document.getElementById('lblMaxRetries');
-  const inputBaseDelay  = document.getElementById('inputBaseDelay');
-  const lblBaseDelay    = document.getElementById('lblBaseDelay');
-  const selectJitter    = document.getElementById('selectJitter');
-  const selectSimScenario = document.getElementById('selectSimScenario');
-  // Default selector to 'flaky' to match the default sim config
-  if (selectSimScenario) selectSimScenario.value = 'flaky';
 
   // Local machine state mirror (for card rendering)
   let machineState   = SYNC_STATES.IDLE;
@@ -445,51 +434,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (btnTestRetry) {
-    btnTestRetry.addEventListener('click', () => {
-      machine.reset();
-      syncService.performSync(true);
-    });
-  }
-
   if (btnFallbackRetry) {
     btnFallbackRetry.addEventListener('click', () => {
       machine.reset();
       syncService.performSync(true);
-    });
-  }
-
-  // ── SIDEBAR CONTROLS ───────────────────────────────────────────────────────
-  if (inputMaxRetries) {
-    inputMaxRetries.addEventListener('input', e => {
-      if (lblMaxRetries) lblMaxRetries.textContent = e.target.value;
-      apiClient.setRetryConfig({ maxRetries: parseInt(e.target.value, 10) });
-    });
-  }
-
-  if (inputBaseDelay) {
-    inputBaseDelay.addEventListener('input', e => {
-      if (lblBaseDelay) lblBaseDelay.textContent = e.target.value;
-      apiClient.setRetryConfig({ baseDelay: parseInt(e.target.value, 10) });
-    });
-  }
-
-  if (selectJitter) {
-    selectJitter.addEventListener('change', e => {
-      apiClient.setRetryConfig({ jitterMode: e.target.value });
-    });
-  }
-
-  if (selectSimScenario) {
-    selectSimScenario.addEventListener('change', e => {
-      const cfg = {
-        none:    { failureRate: 0.0, forcedStatusCode: 0,   latencyMs: 0    },
-        flaky:   { failureRate: 0.6, forcedStatusCode: 0,   latencyMs: 0    },
-        '503':   { failureRate: 0.0, forcedStatusCode: 503, latencyMs: 0    },
-        '429':   { failureRate: 0.0, forcedStatusCode: 429, latencyMs: 0    },
-        latency: { failureRate: 0.0, forcedStatusCode: 0,   latencyMs: 2000 },
-      };
-      apiClient.setSimulationConfig(cfg[e.target.value] || cfg.none);
     });
   }
 
