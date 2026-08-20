@@ -1,16 +1,8 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/health",
-      "dest": "/api/health.py"
-    },
-    {
-      "src": "/api/inventory",
-      "dest": "/api/inventory.py"
-    },
-    {
-      "src": "/api/sync",
-      "dest": "/api/sync.py"
+      "source": "/api/(.*)",
+      "destination": "/index.py"
     }
   ]
 }
