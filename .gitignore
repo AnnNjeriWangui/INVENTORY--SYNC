@@ -1,0 +1,22 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Vercel
+.vercel
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

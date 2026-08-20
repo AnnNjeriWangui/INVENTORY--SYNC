@@ -1,0 +1,20 @@
+{
+  "name": "northstar-inventory-sync",
+  "version": "2.0.0",
+  "description": "Live Inventory Sync Service with Exponential Backoff for Northstar Retail Co Support Tool (Sprint 2)",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 3000",
+    "test": "python -m unittest discover -s tests"
+  },
+  "keywords": [
+    "inventory-sync",
+    "exponential-backoff",
+    "retry-mechanism",
+    "northstar-retail",
+    "vercel",
+    "support-tool"
+  ],
+  "author": "Northstar Retail Co. Engineering Team",
+  "license": "MIT"
+}
