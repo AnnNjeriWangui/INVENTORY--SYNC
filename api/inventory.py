@@ -113,52 +113,14 @@ INVENTORY_DATA = [
     }
 ]
 
-def handler(request):
-    """
-    Vercel python serverless handler entrypoint.
-    """
-    # Parse URL parameters
-    url_parts = urlparse(request.path)
-    query_params = parse_qs(url_parts.query)
-    
-    query = query_params.get("q", [""])[0].lower()
-    sku = query_params.get("sku", [""])[0].upper()
-    category = query_params.get("category", [""])[0].lower()
-
-    filtered = INVENTORY_DATA
-
-    if sku:
-        filtered = [item for item in filtered if item["sku"] == sku]
-    elif query:
-        filtered = [
-            item for item in filtered 
-            if query in item["name"].lower() or query in item["sku"].lower() or query in item["category"].lower()
-        ]
-    
-    if category and category != "all":
-        filtered = [item for item in filtered if item["category"].lower() == category]
-
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        },
-        "body": json.dumps({
-            "client": "Northstar Retail Co.",
-            "sprint": "Sprint 2",
-            "count": len(filtered),
-            "items": filtered
-        })
-    }
-
-class handler_http(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url_parts = urlparse(self.path)
         query_params = parse_qs(url_parts.query)
         
         query = query_params.get("q", [""])[0].lower()
         sku = query_params.get("sku", [""])[0].upper()
+        category = query_params.get("category", [""])[0].lower()
 
         filtered = INVENTORY_DATA
         if sku:
@@ -169,8 +131,11 @@ class handler_http(BaseHTTPRequestHandler):
                 if query in item["name"].lower() or query in item["sku"].lower() or query in item["category"].lower()
             ]
 
+        if category and category != "all":
+            filtered = [item for item in filtered if item["category"].lower() == category]
+
         self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+        self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
