@@ -2,10 +2,12 @@
   "name": "northstar-inventory-sync",
   "version": "2.0.0",
   "description": "Live Inventory Sync Service with Exponential Backoff for Northstar Retail Co Support Tool (Sprint 2)",
-  "main": "index.html",
+  "type": "module",
   "scripts": {
     "start": "python -m http.server 3000",
-    "test": "python -m unittest discover -s tests"
+    "test:js": "node --test tests/test_sync_service.mjs",
+    "test:py": "python -m unittest discover -s tests",
+    "test": "node --test tests/test_sync_service.mjs && python -m unittest discover -s tests"
   },
   "keywords": [
     "inventory-sync",

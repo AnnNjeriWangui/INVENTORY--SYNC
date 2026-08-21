@@ -10,21 +10,33 @@ An enterprise-grade, resilient live inventory sync service built for **Northstar
    - Query stock counts by SKU, product name, category, or warehouse location.
    - Real-time stock status breakdown (`In Stock`, `Low Stock`, `Out of Stock`) and reserved inventory tracking.
 
-2. **Resilient Retry & Exponential Backoff Engine (Under the Hood)**:
+2. **5-Minute Warehouse Polling & Graceful Degradation**:
+   - Automated background polling querying the mock warehouse API every 5 minutes (`300_000ms`).
+   - Retains last-good cached stock data during transient API drops to ensure zero downtime for support agents.
+
+3. **In-Memory Local Caching Layer (`StockCache`)**:
+   - Per-entry TTL caching (`360_000ms` / 6 minutes) preventing redundant supplier network roundtrips.
+   - Cache hit/miss analytics, cache age reporting, and explicit cache invalidation mechanisms.
+
+4. **Real-Time Dashboard Query Function (`getStockAvailability`)**:
+   - Cache-aside lookup endpoint serving instant queries by SKU, name, category, and regional hub.
+   - Rich query metadata (`found`, `cacheHit`, `cacheAge`, `lastPolled`, `pollingActive`).
+
+5. **Resilient Retry & Exponential Backoff Engine (Under the Hood)**:
    - **Exponential Backoff**: Configurable multiplier ($delay = base \times factor^{(attempt-1)}$).
    - **Jitter Strategies**: Supports **Full Jitter** (random uniform range $[0, capped\_delay]$) and **Equal Jitter** to prevent thundering herd spikes on supplier APIs.
    - **Automatic Resilience**: Production defaults (`maxRetries: 3`, `baseDelay: 500ms`, `jitterMode: 'full'`) running in the background without UI clutter.
    - **Transient Error Filtering**: Automatic retry triggers for `408`, `429 Rate Limit`, `500`, `502`, `503 Service Unavailable`, `504 Gateway Timeout`, and socket drops.
 
-3. **Customer-Facing Sync Status & State Machine**:
+6. **Customer-Facing Sync Status & State Machine**:
    - Explicit 5-state UI state machine (`idle`, `syncing`, `retrying`, `success`, `failed`).
    - Dynamic 4-state Customer Sync Banner (CSB) with animated backoff countdown progress bar and per-card status badges.
    - Graceful degradation snapshot fallback with single-click retry action.
 
-4. **Learning & Blocker Journal**:
+7. **Learning & Blocker Journal**:
    - Comprehensive technical documentation in `LEARNING_JOURNAL.md` covering consulted resources, error logs, and autonomous blocker resolutions.
 
-5. **Vercel Serverless & Static Ready**:
+8. **Vercel Serverless & Static Ready**:
    - Serverless Python functions in `/api` and root `index.py`.
    - Configured via `vercel.json` for zero-config static hosting and Python serverless runtimes.
 

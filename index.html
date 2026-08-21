@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Northstar Retail Co. — Live Stock Check</title>
-  <meta name="description" content="Check real-time stock availability across Northstar Kenya distribution hubs — Nairobi, Mombasa, Kisumu, Nakuru, Eldoret.">
+  <meta name="description" content="Check real-time stock availability across Northstar Kenya distribution hubs — Nairobi, Mombasa, Kisumu, Nakuru, Eldoret. Day 3: 5-min warehouse polling with local caching.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,6 +162,22 @@
         <div class="ms-item">
           <span class="ms-val" id="lastSyncTimestamp" style="font-size:.78rem;font-weight:500;">Just now</span>
           <span class="ms-lbl">Last Sync</span>
+        </div>
+        <!-- Day 3: Cache + Polling status metrics -->
+        <div class="ms-sep"></div>
+        <div class="ms-item" title="Whether the last query was served from the local cache or live data">
+          <span class="ms-val" id="metricCacheHit" style="font-size:.78rem;font-weight:600;color:var(--accent-green,#7D9D84);">Cache</span>
+          <span class="ms-lbl">Data Source</span>
+        </div>
+        <div class="ms-sep"></div>
+        <div class="ms-item" title="Last time the 5-minute warehouse poller refreshed stock data">
+          <span class="ms-val" id="metricLastPolled" style="font-size:.78rem;font-weight:500;">—</span>
+          <span class="ms-lbl">Last Polled</span>
+        </div>
+        <div class="ms-sep"></div>
+        <div class="ms-item" title="Warehouse polling loop status (fires every 5 minutes)">
+          <span class="ms-val" id="metricPollBadge" style="font-size:.78rem;font-weight:600;color:var(--text-muted,#888);">&#9675; Idle</span>
+          <span class="ms-lbl">Poller</span>
         </div>
       </div>
 

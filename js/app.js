@@ -1,6 +1,7 @@
 /**
  * Northstar Retail Co. — Live Stock Check
  * Sprint 2: Customer-Facing Retry & Backoff State Machine
+ * Day 3:   Warehouse Polling · Local Cache Layer · Dashboard Query Endpoint
  *
  * Design principle: every state change in the SyncStateMachine produces
  * an immediate, explicit DOM mutation. Nothing is hidden or silent.
@@ -11,6 +12,11 @@
  *   retrying → search bar locked + spinner, RETRYING banner with live countdown
  *   success  → search bar unlocked, green success flash banner (auto-hides)
  *   failed   → search bar unlocked, persistent red fallback with "Try Again"
+ *
+ * Day 3 additions:
+ *   - syncService.startWarehousePolling() boots a 5-min warehouse poller
+ *   - renderCurrentView() uses getStockAvailability() (cache-aside reads)
+ *   - Cache hit/age metadata shown in the metrics bar
  */
 
 import { InventoryApiClient }       from './api-client.js';
@@ -21,7 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Instances ──────────────────────────────────────────────────────────────
   const apiClient  = new InventoryApiClient();
-  const syncService = new LiveInventorySyncService(apiClient, { syncIntervalMs: 30000 });
+  // Day 3: pass warehousePollingIntervalMs (5 min) alongside the existing 30s UI sync interval
+  const syncService = new LiveInventorySyncService(apiClient, {
+    syncIntervalMs:            30_000,   // UI refresh — unchanged from Sprint 2
+    warehousePollingIntervalMs: 300_000, // Day 3: poll mock warehouse API every 5 min
+    cacheTtlMs:                360_000   // Day 3: cache TTL — 6 min
+  });
   const machine    = new SyncStateMachine();
 
   // Clean live resilience defaults
@@ -63,10 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastSyncTs      = document.getElementById('lastSyncTimestamp');
 
   // Metrics
-  const metricTotalSkus = document.getElementById('metricTotalSkus');
-  const metricInStock   = document.getElementById('metricInStock');
-  const metricLowStock  = document.getElementById('metricLowStock');
-  const metricRetries   = document.getElementById('metricRetriesCount');
+  const metricTotalSkus  = document.getElementById('metricTotalSkus');
+  const metricInStock    = document.getElementById('metricInStock');
+  const metricLowStock   = document.getElementById('metricLowStock');
+  const metricRetries    = document.getElementById('metricRetriesCount');
+  // Day 3: cache & polling status elements (added to index.html)
+  const metricCacheHit   = document.getElementById('metricCacheHit');
+  const metricLastPolled = document.getElementById('metricLastPolled');
+  const metricPollBadge  = document.getElementById('metricPollBadge');
 
   // Buttons
   const btnForceSync    = document.getElementById('btnForceSync');
@@ -301,8 +316,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCurrentView() {
     const query = searchInput ? searchInput.value : '';
     const cat   = categoryFilter ? categoryFilter.value : 'all';
-    let items   = syncService.queryStock(query);
+
+    // Day 3: use getStockAvailability() for cache-aware reads + rich metadata
+    const result = syncService.getStockAvailability(query);
+    let items    = result.items;
     if (cat !== 'all') items = items.filter(i => i.category.toLowerCase() === cat);
+
+    // Day 3: update cache/poll status indicators in the metrics bar
+    if (metricCacheHit) {
+      metricCacheHit.textContent = result.cacheHit ? 'Cache' : 'Live';
+      metricCacheHit.title = result.cacheHit
+        ? `Served from cache (${result.cacheAge ? Math.round(result.cacheAge / 1000) + 's ago' : 'fresh'})`
+        : 'Served from live in-memory store';
+    }
+    if (metricLastPolled) {
+      metricLastPolled.textContent = result.lastPolled ? result.lastPolled : '—';
+    }
+    if (metricPollBadge) {
+      metricPollBadge.textContent = result.pollingActive ? '● Polling' : '○ Idle';
+      metricPollBadge.style.color = result.pollingActive ? 'var(--accent-green, #7D9D84)' : 'var(--text-muted, #888)';
+    }
+
     renderInventory(items);
   }
 
@@ -444,6 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── BOOT: initial render then trigger first sync ──────────────────────────
   renderCurrentView();
   syncService.startAutoSync();
+
+  // Day 3: start the 5-minute warehouse polling loop (independent of UI sync)
+  syncService.startWarehousePolling();
 
   // Run one sync immediately on load so the customer experiences the full flow
   setTimeout(() => {
