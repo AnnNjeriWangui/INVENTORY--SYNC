@@ -44,7 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchShell     = document.getElementById('searchShell');
   const searchSpinner   = document.getElementById('searchSpinner');
   const searchHint      = document.getElementById('searchHint');
+  const hubFilter       = document.getElementById('hubFilter');
   const categoryFilter  = document.getElementById('categoryFilter');
+  const whChips         = document.querySelectorAll('.wh-chip');
 
   // Customer Sync Banner panels
   const customerBanner  = document.getElementById('customerSyncBanner');
@@ -316,11 +318,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCurrentView() {
     const query = searchInput ? searchInput.value : '';
     const cat   = categoryFilter ? categoryFilter.value : 'all';
+    const hub   = hubFilter ? hubFilter.value : 'all';
 
     // Day 3: use getStockAvailability() for cache-aware reads + rich metadata
-    const result = syncService.getStockAvailability(query);
-    let items    = result.items;
-    if (cat !== 'all') items = items.filter(i => i.category.toLowerCase() === cat);
+    const result   = syncService.getStockAvailability(query);
+    const allItems = result.items;
+    let items      = [...allItems];
+
+    if (cat !== 'all') {
+      items = items.filter(i => i.category.toLowerCase() === cat);
+    }
+
+    if (hub !== 'all') {
+      items = items.filter(i => 
+        i.warehouses && Object.keys(i.warehouses).some(wh => wh.toLowerCase().includes(hub) && i.warehouses[wh] > 0)
+      );
+    }
+
+    // Update Warehouse Hub Chips telemetry
+    updateWarehouseHubChips(syncService.inventoryData || allItems, hub);
 
     // Day 3: update cache/poll status indicators in the metrics bar
     if (metricCacheHit) {
@@ -338,6 +354,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderInventory(items);
+  }
+
+  function updateWarehouseHubChips(allInventory, selectedHub) {
+    let totalAll = 0, totalNbo = 0, totalMba = 0, totalKsm = 0, totalNkr = 0, totalEld = 0;
+
+    (allInventory || []).forEach(item => {
+      totalAll += (item.available || 0);
+      const wh = item.warehouses || {};
+      Object.entries(wh).forEach(([name, count]) => {
+        const lower = name.toLowerCase();
+        if (lower.includes('nairobi')) totalNbo += count;
+        if (lower.includes('mombasa')) totalMba += count;
+        if (lower.includes('kisumu'))  totalKsm += count;
+        if (lower.includes('nakuru'))  totalNkr += count;
+        if (lower.includes('eldoret')) totalEld += count;
+      });
+    });
+
+    const elAll = document.getElementById('whStockAll');
+    const elNbo = document.getElementById('whStockNairobi');
+    const elMba = document.getElementById('whStockMombasa');
+    const elKsm = document.getElementById('whStockKisumu');
+    const elNkr = document.getElementById('whStockNakuru');
+    const elEld = document.getElementById('whStockEldoret');
+
+    if (elAll) elAll.textContent = `${totalAll} units`;
+    if (elNbo) elNbo.textContent = `${totalNbo} units`;
+    if (elMba) elMba.textContent = `${totalMba} units`;
+    if (elKsm) elKsm.textContent = `${totalKsm} units`;
+    if (elNkr) elNkr.textContent = `${totalNkr} units`;
+    if (elEld) elEld.textContent = `${totalEld} units`;
+
+    // Sync active class on chip buttons
+    whChips.forEach(chip => {
+      if (chip.dataset.hub === selectedHub) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
   }
 
   function renderInventory(items) {
@@ -434,11 +490,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (metricTotalSkus) metricTotalSkus.textContent = items.length;
       if (metricInStock)   metricInStock.textContent   = items.filter(i => i.status === 'In Stock').length;
       if (metricLowStock)  metricLowStock.textContent  = items.filter(i => i.status === 'Low Stock').length;
-      renderInventory(items);
+      renderCurrentView();
     }
   });
 
-  // ── SEARCH — triggers a live sync on every keystroke after 300ms ──────────
+  // ── SEARCH & FILTERS — instant local filter + debounced sync ─────────────
   let searchDebounce = null;
   if (searchInput) {
     searchInput.addEventListener('input', () => {
@@ -459,6 +515,20 @@ document.addEventListener('DOMContentLoaded', () => {
       syncService.performSync(true);
     });
   }
+
+  if (hubFilter) {
+    hubFilter.addEventListener('change', () => {
+      renderCurrentView();
+    });
+  }
+
+  whChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const selected = chip.dataset.hub;
+      if (hubFilter) hubFilter.value = selected;
+      renderCurrentView();
+    });
+  });
 
   // ── ACTION BUTTONS ─────────────────────────────────────────────────────────
   if (btnForceSync) {

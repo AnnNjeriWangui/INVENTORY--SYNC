@@ -1273,6 +1273,115 @@ body {
 .ms-sep { width: 1px; height: 32px; background: var(--border-subtle); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   WAREHOUSE HUBS BAR (Mock Warehouse API Telemetry)
+═══════════════════════════════════════════════════════════════════════════ */
+.warehouse-hubs-bar {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: .85rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.wh-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .65rem;
+  font-size: .78rem;
+}
+
+.wh-bar-title {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 700;
+  color: var(--slate-blue-primary);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.wh-bar-status {
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.wh-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: .6rem;
+}
+
+.wh-chip {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: #F8FAFC;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: .5rem .75rem;
+  cursor: pointer;
+  transition: all .15s ease;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.wh-chip:hover {
+  background: var(--sage-green-bg);
+  border-color: var(--sage-green-primary);
+  transform: translateY(-1px);
+}
+
+.wh-chip.active {
+  background: var(--slate-blue-primary);
+  border-color: var(--slate-blue-dark);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(44, 62, 80, 0.25);
+}
+
+.wh-chip.active .wh-chip-name {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.wh-chip.active .wh-chip-stock {
+  color: var(--sage-green-light);
+  font-weight: 700;
+}
+
+.wh-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--sage-green-primary);
+}
+
+.wh-chip-dot.green {
+  background: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.wh-chip-name {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-main);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wh-chip-stock {
+  font-size: .72rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    STOCK SECTION + OVERLAY
 ═══════════════════════════════════════════════════════════════════════════ */
 .stock-section {

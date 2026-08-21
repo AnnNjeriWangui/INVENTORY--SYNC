@@ -22,7 +22,7 @@
         <div class="brand-logo-icon">N</div>
         <div class="brand-title-group">
           <h1>Northstar Retail Co.</h1>
-          <span class="brand-badge">Warehouse API · Kenya</span>
+          <span class="brand-badge">Live Stock · Kenya</span>
         </div>
       </div>
 
@@ -59,8 +59,16 @@
         spellcheck="false"
       >
       <div class="search-spinner" id="searchSpinner"></div>
+      <select id="hubFilter" class="category-pill">
+        <option value="all">All Hubs</option>
+        <option value="nairobi">Nairobi Hub</option>
+        <option value="mombasa">Mombasa Hub</option>
+        <option value="kisumu">Kisumu Hub</option>
+        <option value="nakuru">Nakuru Express</option>
+        <option value="eldoret">Eldoret Depot</option>
+      </select>
       <select id="categoryFilter" class="category-pill">
-        <option value="all">All</option>
+        <option value="all">All Categories</option>
         <option value="outerwear">Outerwear</option>
         <option value="apparel">Apparel</option>
         <option value="accessories">Accessories</option>
@@ -178,6 +186,49 @@
         <div class="ms-item" title="Warehouse polling loop status (fires every 5 minutes)">
           <span class="ms-val" id="metricPollBadge" style="font-size:.78rem;font-weight:600;color:var(--text-muted,#888);">&#9675; Idle</span>
           <span class="ms-lbl">Warehouse Poller</span>
+        </div>
+      </div>
+
+      <!-- Warehouse Hubs Live Status Bar (Day 3 Mock Warehouse API) -->
+      <div class="warehouse-hubs-bar" id="warehouseHubsBar">
+        <div class="wh-bar-header">
+          <span class="wh-bar-title">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            Distribution Hubs Availability
+          </span>
+          <span class="wh-bar-status" id="whBarStatus">5 / 5 Operational · Mock Warehouse API</span>
+        </div>
+        <div class="wh-chips-grid" id="whChipsGrid">
+          <button type="button" class="wh-chip active" data-hub="all">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">All Hubs</span>
+            <span class="wh-chip-stock" id="whStockAll">—</span>
+          </button>
+          <button type="button" class="wh-chip" data-hub="nairobi">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">Nairobi Central</span>
+            <span class="wh-chip-stock" id="whStockNairobi">—</span>
+          </button>
+          <button type="button" class="wh-chip" data-hub="mombasa">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">Mombasa Port</span>
+            <span class="wh-chip-stock" id="whStockMombasa">—</span>
+          </button>
+          <button type="button" class="wh-chip" data-hub="kisumu">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">Kisumu Lake</span>
+            <span class="wh-chip-stock" id="whStockKisumu">—</span>
+          </button>
+          <button type="button" class="wh-chip" data-hub="nakuru">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">Nakuru Express</span>
+            <span class="wh-chip-stock" id="whStockNakuru">—</span>
+          </button>
+          <button type="button" class="wh-chip" data-hub="eldoret">
+            <span class="wh-chip-dot green"></span>
+            <span class="wh-chip-name">Eldoret Depot</span>
+            <span class="wh-chip-stock" id="whStockEldoret">—</span>
+          </button>
         </div>
       </div>
 
