@@ -165,3 +165,45 @@ test('LiveInventorySyncService - Warehouse Polling Lifecycle and Graceful Degrad
     service.stopWarehousePolling();
     assert.equal(service.syncState.pollingActive, false);
 });
+
+test('LiveInventorySyncService - Mock Warehouse API Direct Querying and Hub Telemetry', async () => {
+    const mockHubs = [
+        { id: 'WH-NBO', name: 'Nairobi Central Hub', location: 'Nairobi, Kenya', status: 'OPERATIONAL' },
+        { id: 'WH-MBA', name: 'Mombasa Port Hub', location: 'Mombasa, Kenya', status: 'OPERATIONAL' }
+    ];
+    const mockItems = [
+        {
+            sku: 'NSR-1001',
+            name: 'Parka',
+            warehouses: { 'Nairobi Hub': 18, 'Mombasa Hub': 12 }
+        }
+    ];
+
+    const mockApiClient = {
+        getWarehouseStock: async (params) => ({
+            success: true,
+            result: {
+                data: {
+                    service: 'Mock Warehouse API',
+                    hubs: mockHubs,
+                    items: mockItems
+                }
+            }
+        }),
+        getInventory: async () => ({ success: true, result: { data: { items: mockItems } } }),
+        triggerSync: async () => ({ success: true })
+    };
+
+    const service = new LiveInventorySyncService(mockApiClient);
+
+    const warehouseRes = await service.queryWarehouseApi({ hub: 'Nairobi' });
+    assert.equal(warehouseRes.success, true);
+    assert.equal(warehouseRes.result.data.service, 'Mock Warehouse API');
+    assert.equal(warehouseRes.result.data.hubs.length, 2);
+
+    // Verify polling calls getWarehouseStock and stores hub telemetry
+    await service._executePoll();
+    assert.deepEqual(service.warehouseHubs, mockHubs);
+    assert.equal(service.syncState.itemsCount, 1);
+});
+

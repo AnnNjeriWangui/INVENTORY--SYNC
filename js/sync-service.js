@@ -322,24 +322,30 @@ export class LiveInventorySyncService {
 
     /**
      * Execute a single warehouse API poll cycle.
-     * On success  → refreshes inventoryData + populates cache.
+     * Queries the Mock Warehouse API (/api/warehouse).
+     * On success  → refreshes inventoryData + populates cache + stores hub telemetry.
      * On failure  → retains last-good cache entry (graceful degradation).
      * @private
      */
     async _executePoll() {
         console.info(
-            `[WarehousePoller] Polling warehouse API at ${new Date().toLocaleTimeString()}`
+            `[WarehousePoller] Polling Mock Warehouse API at ${new Date().toLocaleTimeString()}`
         );
 
         try {
-            const outcome = await this.apiClient.getInventory();
+            // Day 3: Query dedicated Mock Warehouse API endpoint
+            const outcome = typeof this.apiClient.getWarehouseStock === 'function'
+                ? await this.apiClient.getWarehouseStock()
+                : await this.apiClient.getInventory();
 
             if (outcome.success && outcome.result?.data?.items) {
                 const freshItems = outcome.result.data.items;
+                const hubs       = outcome.result.data.hubs || [];
 
-                // Update in-memory store
+                // Update in-memory store & hub telemetry
                 this.inventoryData        = freshItems;
                 this.syncState.itemsCount = freshItems.length;
+                this.warehouseHubs        = hubs;
 
                 // Refresh cache entries
                 this.cache.set(CACHE_KEYS.ALL_STOCK,   [...freshItems]);
@@ -349,20 +355,31 @@ export class LiveInventorySyncService {
                 this.syncState.lastWarehousePoll = this.lastWarehousePollTime;
 
                 console.info(
-                    `[WarehousePoller] Cache refreshed — ${freshItems.length} SKUs stored.`
+                    `[WarehousePoller] Cache refreshed from Mock Warehouse API — ${freshItems.length} SKUs stored across ${hubs.length || 5} hubs.`
                 );
             } else {
                 console.warn(
-                    '[WarehousePoller] API responded but returned no items. Retaining stale cache.'
+                    '[WarehousePoller] Mock Warehouse API responded but returned no items. Retaining stale cache.'
                 );
             }
         } catch (err) {
             // Network / timeout — do NOT clear the cache; serve stale data
-            console.error('[WarehousePoller] Poll failed:', err?.message ?? err);
+            console.error('[WarehousePoller] Mock Warehouse API poll failed:', err?.message ?? err);
             console.warn('[WarehousePoller] Serving last-good cached data until next poll.');
         }
 
         this.notify();
+    }
+
+    /**
+     * Query the Mock Warehouse API directly for real-time stock at a specific hub.
+     * @param {object} [params]
+     * @returns {Promise<object>}
+     */
+    async queryWarehouseApi(params = {}) {
+        return typeof this.apiClient.getWarehouseStock === 'function'
+            ? await this.apiClient.getWarehouseStock(params)
+            : await this.apiClient.getInventory(params);
     }
 
     // ───────────────────────────────────────────────────────────────────────

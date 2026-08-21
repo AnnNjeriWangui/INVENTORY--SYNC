@@ -71,13 +71,22 @@ export class InventoryApiClient {
         }
 
         // Normal mock response fallback if endpoint fetch fails
-        if (endpoint.includes('/api/inventory')) {
+        if (endpoint.includes('/api/warehouse') || endpoint.includes('/api/inventory')) {
             return {
                 status: 200,
                 data: {
                     client: "Northstar Retail Co.",
+                    service: "Mock Warehouse API",
                     sprint: "Sprint 2",
+                    poll_interval_seconds: 300,
                     timestamp: new Date().toISOString(),
+                    hubs: [
+                        { id: "WH-NBO", name: "Nairobi Central Hub", location: "Nairobi, Kenya", status: "OPERATIONAL" },
+                        { id: "WH-MBA", name: "Mombasa Port Hub", location: "Mombasa, Kenya", status: "OPERATIONAL" },
+                        { id: "WH-KSM", name: "Kisumu Lake Hub", location: "Kisumu, Kenya", status: "OPERATIONAL" },
+                        { id: "WH-NKR", name: "Nakuru Express", location: "Nakuru, Kenya", status: "OPERATIONAL" },
+                        { id: "WH-ELD", name: "Eldoret Depot", location: "Eldoret, Kenya", status: "OPERATIONAL" }
+                    ],
                     items: [
                         {
                             sku: "NSR-1001",
@@ -205,6 +214,20 @@ export class InventoryApiClient {
     async getInventory(params = {}) {
         const query = new URLSearchParams(params).toString();
         const url = `/api/inventory${query ? `?${query}` : ''}`;
+        return await this.requestWithRetry(url, { method: 'GET' });
+    }
+
+    /**
+     * Query the Mock Warehouse API directly (/api/warehouse)
+     * @param {object} [params]
+     * @param {string} [params.hub]
+     * @param {string} [params.sku]
+     * @param {string} [params.q]
+     * @returns {Promise<object>}
+     */
+    async getWarehouseStock(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const url = `/api/warehouse${query ? `?${query}` : ''}`;
         return await this.requestWithRetry(url, { method: 'GET' });
     }
 

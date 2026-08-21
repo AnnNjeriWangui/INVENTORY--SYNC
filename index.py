@@ -154,6 +154,49 @@ def inventory():
         "items": filtered
     })
 
+@app.route('/api/warehouse', methods=['GET'])
+def warehouse():
+    query = request.args.get('q', '').lower()
+    sku = request.args.get('sku', '').upper()
+    category = request.args.get('category', '').lower()
+    hub = request.args.get('hub', '').lower()
+
+    filtered = INVENTORY_DATA
+    if sku:
+        filtered = [item for item in filtered if item["sku"] == sku]
+    elif query:
+        filtered = [
+            item for item in filtered 
+            if query in item["name"].lower() or query in item["sku"].lower() or query in item["category"].lower()
+        ]
+
+    if category and category != "all":
+        filtered = [item for item in filtered if item["category"].lower() == category]
+
+    if hub:
+        filtered = [
+            item for item in filtered
+            if any(hub in wh.lower() and count > 0 for wh, count in item.get("warehouses", {}).items())
+        ]
+
+    hubs = [
+        {"id": "WH-NBO", "name": "Nairobi Central Hub", "location": "Nairobi, Kenya", "status": "OPERATIONAL", "latency_ms": 18},
+        {"id": "WH-MBA", "name": "Mombasa Port Hub", "location": "Mombasa, Kenya", "status": "OPERATIONAL", "latency_ms": 24},
+        {"id": "WH-KSM", "name": "Kisumu Lake Hub", "location": "Kisumu, Kenya", "status": "OPERATIONAL", "latency_ms": 32},
+        {"id": "WH-NKR", "name": "Nakuru Express", "location": "Nakuru, Kenya", "status": "OPERATIONAL", "latency_ms": 28},
+        {"id": "WH-ELD", "name": "Eldoret Depot", "location": "Eldoret, Kenya", "status": "OPERATIONAL", "latency_ms": 35}
+    ]
+
+    return jsonify({
+        "client": "Northstar Retail Co.",
+        "service": "Mock Warehouse API",
+        "poll_interval_seconds": 300,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "hubs": hubs,
+        "count": len(filtered),
+        "items": filtered
+    })
+
 @app.route('/api/sync', methods=['POST', 'GET'])
 def sync():
     body = request.get_json(silent=True) or {}
