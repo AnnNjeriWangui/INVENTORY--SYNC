@@ -403,6 +403,27 @@ export class LiveInventorySyncService {
         }, this.syncIntervalMs);
     }
 
+    /**
+     * Boot-safe version of startAutoSync.
+     * Schedules the background refresh timer WITHOUT firing an immediate sync.
+     * Use this on page load so the dashboard opens idle and the \"Is it in stock?\"
+     * retry/backoff flow only runs after a user explicitly triggers a search.
+     */
+    startAutoSyncTimerOnly() {
+        this.isAutoSyncEnabled = true;
+        if (this.syncTimer) clearInterval(this.syncTimer);
+
+        // Notify subscribers with current state (renders cached data, no network call)
+        this.notify();
+
+        // Schedule future periodic syncs — first one fires after syncIntervalMs, not immediately
+        this.syncTimer = setInterval(() => {
+            if (this.isAutoSyncEnabled) {
+                this.performSync();
+            }
+        }, this.syncIntervalMs);
+    }
+
     stopAutoSync() {
         this.isAutoSyncEnabled = false;
         if (this.syncTimer) {

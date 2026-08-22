@@ -95,6 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let sessionRetries = 0;
   let successTimer   = null;
 
+  // Guard: sync + retry backoff only fires after the user has actively searched.
+  // Prevents auto-execution of the "Is it in stock?" flow on page load.
+  let userHasSearched = false;
+
   // ── STATE MACHINE → COMPLETE UI SNAPSHOT ──────────────────────────────────
   //
   // This is the ONLY place visual updates happen.
@@ -484,44 +488,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  // ── SYNC SERVICE subscriber (metrics + initial render) ────────────────────
+  // ── SYNC SERVICE subscriber (metrics + re-render after user-initiated syncs) ─
   syncService.subscribe((state, items) => {
     if (items) {
       if (metricTotalSkus) metricTotalSkus.textContent = items.length;
       if (metricInStock)   metricInStock.textContent   = items.filter(i => i.status === 'In Stock').length;
       if (metricLowStock)  metricLowStock.textContent  = items.filter(i => i.status === 'Low Stock').length;
-      renderCurrentView();
+      // Only re-render the product grid when the user has actively searched.
+      // Background warehouse polls must NOT trigger the retry UI flow.
+      if (userHasSearched) {
+        renderCurrentView();
+      }
     }
   });
 
-  // ── SEARCH & FILTERS — instant local filter + debounced sync ─────────────
+  // ── SEARCH & FILTERS ────────────────────────────────────────────────────────
+  // Rule: the "Is it in stock?" sync + retry backoff ONLY fires after the user
+  // explicitly types a query. Filters (category / hub chips) refine the local
+  // view but do NOT re-trigger the network sync flow.
   let searchDebounce = null;
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       clearTimeout(searchDebounce);
-      renderCurrentView(); // instant local filter
-      searchDebounce = setTimeout(() => {
-        // Trigger a real sync so the retry machinery fires
+      const query = searchInput.value.trim();
+
+      // Always update the local grid immediately (instant filter, no network)
+      renderCurrentView();
+
+      // Only fire a real sync when the user has actually typed something.
+      // Empty / cleared input stays idle — no retry loop, no banner.
+      if (query.length > 0) {
+        userHasSearched = true;
+        searchDebounce = setTimeout(() => {
+          machine.reset();
+          syncService.performSync(true);
+        }, 300);
+      } else {
+        // User cleared the field — return to idle, stop any pending sync
+        userHasSearched = false;
         machine.reset();
-        syncService.performSync(true);
-      }, 300);
+        hideBanner();
+      }
     });
   }
 
+  // Category filter: local re-render only — does not trigger the sync/retry flow
   if (categoryFilter) {
     categoryFilter.addEventListener('change', () => {
       renderCurrentView();
-      machine.reset();
-      syncService.performSync(true);
     });
   }
 
+  // Hub dropdown: local re-render only
   if (hubFilter) {
     hubFilter.addEventListener('change', () => {
       renderCurrentView();
     });
   }
 
+  // Hub chips: local re-render only — sync with dropdown value
   whChips.forEach(chip => {
     chip.addEventListener('click', () => {
       const selected = chip.dataset.hub;
@@ -545,16 +570,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── BOOT: initial render then trigger first sync ──────────────────────────
+  // ── BOOT: render static data and start background services ──────────────
+  // IMPORTANT: No sync or retry is triggered here.
+  // The dashboard opens in idle state showing cached inventory.
+  // The "Is it in stock?" flow only fires after the user types a query.
   renderCurrentView();
-  syncService.startAutoSync();
 
-  // Day 3: start the 5-minute warehouse polling loop (independent of UI sync)
+  // Start the background auto-sync timer (does NOT fire an immediate sync).
+  // It only schedules future periodic syncs for keeping data fresh.
+  syncService.startAutoSyncTimerOnly();
+
+  // Day 3: start the 5-minute warehouse polling loop (independent of UI sync).
+  // This updates hub telemetry in the background without touching the retry UI.
   syncService.startWarehousePolling();
-
-  // Run one sync immediately on load so the customer experiences the full flow
-  setTimeout(() => {
-    machine.reset();
-    syncService.performSync(true);
-  }, 600);
 });
